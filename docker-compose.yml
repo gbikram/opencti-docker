@@ -1,0 +1,253 @@
+version: '3'
+services:
+  redis:
+    image: redis:7.0.0
+    restart: unless-stopped 
+    volumes:
+      - redisdata:/data
+    ports:
+      - "6379:6379"
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    environment:
+      # Comment out the line below for single-node
+      - discovery.type=single-node
+      # Uncomment line below below for a cluster of multiple nodes
+      # - cluster.name=docker-cluster
+      - xpack.ml.enabled=false
+      - "ES_JAVA_OPTS=-Xms${ELASTIC_MEMORY_SIZE} -Xmx${ELASTIC_MEMORY_SIZE}"
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+    restart: unless-stopped
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+  minio:
+    image: minio/minio:RELEASE.2022-05-19T18-20-59Z
+    volumes:
+      - s3data:/data
+    ports:
+      - "9000:9000"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    command: server /data
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "curl",
+          "-f",
+          "http://localhost:9000/minio/health/live"
+        ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    restart: unless-stopped
+  rabbitmq:
+    image: rabbitmq:3.10-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    volumes:
+      - amqpdata:/var/lib/rabbitmq
+    restart: unless-stopped
+    ports:
+      - "5672:5672"
+  opencti:
+    image: opencti/platform:${OPENCTI_VERSION}
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=8096
+      - APP__PORT=8080
+      - APP__BASE_URL=${OPENCTI_BASE_URL}
+      - APP__BASE_PATH=${OPENCTI_BASE_PATH}
+      - APP__ADMIN__EMAIL=${OPENCTI_ADMIN_EMAIL}
+      - APP__ADMIN__PASSWORD=${OPENCTI_ADMIN_PASSWORD}
+      - APP__ADMIN__TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - APP__APP_LOGS__LOGS_LEVEL=info
+      - REDIS__HOSTNAME=redis
+      - REDIS__PORT=6379
+      - ELASTICSEARCH__URL=http://elasticsearch:9200
+      - MINIO__ENDPOINT=minio
+      - MINIO__PORT=9000
+      - MINIO__USE_SSL=false
+      - MINIO__ACCESS_KEY=${MINIO_ROOT_USER}
+      - MINIO__SECRET_KEY=${MINIO_ROOT_PASSWORD}
+      - RABBITMQ__HOSTNAME=rabbitmq
+      - RABBITMQ__PORT=5672
+      - RABBITMQ__PORT_MANAGEMENT=15672
+      - RABBITMQ__MANAGEMENT_SSL=false
+      - RABBITMQ__USERNAME=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ__PASSWORD=${RABBITMQ_DEFAULT_PASS}
+      - PROVIDERS__LOCAL__STRATEGY=LocalStrategy
+      - ELASTICSEARCH__USERNAME=elastic
+      - ELASTICSEARCH__PASSWORD=${ELASTIC_PASSWORD}
+    # - SMTP__HOSTNAME=${SMTP_HOSTNAME}
+    # - SMTP__USE_SSL=true
+    # - SMTP__REJECT_UNAUTHORIZED=false
+    # - SMTP__PORT=25
+    #  - SMTP__PASSWORD=${SMTP_PASSWORD}
+    #  - SUBSCRIPTION_SCHEDULER__ENABLED=true
+      - AI__MODEL=mistral-tiny
+      - AI__TOKEN=${MISTRAL_AI_TOKEN}
+      - EXPIRATION_SCHEDULER__ENABLED=false
+    ports:
+      - "8080:8080"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4000M
+    depends_on:
+      - redis
+      - elasticsearch
+      - minio
+      - rabbitmq
+    restart: unless-stopped 
+  worker:
+    image: opencti/worker:${OPENCTI_VERSION}
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - WORKER_LOG_LEVEL=info
+    depends_on:
+      - opencti
+      # deploy:
+      # mode: replicated
+      # replicas: 1
+    restart: unless-stopped
+  connector-export-file-stix:
+    image: opencti/connector-export-file-stix:${OPENCTI_VERSION}
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_EXPORT_FILE_STIX_ID} # Valid UUIDv4
+      - CONNECTOR_TYPE=INTERNAL_EXPORT_FILE
+      - CONNECTOR_NAME=ExportFileStix2
+      - CONNECTOR_SCOPE=application/json
+      - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+      - CONNECTOR_LOG_LEVEL=error
+    restart: unless-stopped
+    depends_on:
+      - opencti
+  connector-export-file-csv:
+    image: opencti/connector-export-file-csv:${OPENCTI_VERSION}
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_EXPORT_FILE_CSV_ID} # Valid UUIDv4
+      - CONNECTOR_TYPE=INTERNAL_EXPORT_FILE
+      - CONNECTOR_NAME=ExportFileCsv
+      - CONNECTOR_SCOPE=text/csv
+      - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+      - CONNECTOR_LOG_LEVEL=error
+    restart: unless-stopped
+    depends_on:
+      - opencti
+  connector-export-file-txt:
+    image: opencti/connector-export-file-txt:${OPENCTI_VERSION}
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_EXPORT_FILE_TXT_ID} # Valid UUIDv4
+      - CONNECTOR_TYPE=INTERNAL_EXPORT_FILE
+      - CONNECTOR_NAME=ExportFileTxt
+      - CONNECTOR_SCOPE=text/plain
+      - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+      - CONNECTOR_LOG_LEVEL=error
+    restart: unless-stopped
+    depends_on:
+      - opencti
+  connector-import-file-stix:
+    image: opencti/connector-import-file-stix:${OPENCTI_VERSION}
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_IMPORT_FILE_STIX_ID} # Valid UUIDv4
+      - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
+      - CONNECTOR_NAME=ImportFileStix
+      - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
+      - CONNECTOR_SCOPE=application/json,text/xml
+      - CONNECTOR_AUTO=false # Enable/disable auto-import of file
+      - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+      - CONNECTOR_LOG_LEVEL=error
+    restart: unless-stopped
+    depends_on:
+      - opencti
+  kibana:
+    image: docker.elastic.co/kibana/kibana:7.17.5
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+    ports:
+       - "5601:5601"
+    depends_on:
+       - elasticsearch
+    restart: always
+  connector-mitre:
+    image: opencti/connector-mitre:5.5.0
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_MITRE_ID}
+      - CONNECTOR_TYPE=EXTERNAL_IMPORT
+      - CONNECTOR_NAME=MITRE Datasets
+      - CONNECTOR_SCOPE=marking-definition,identity,attack-pattern,course-of-action,intrusion-set,campaign,malware,tool,report,x-mitre-data-component,x-mitre-data-source,external-reference-as-report
+      - CONNECTOR_CONFIDENCE_LEVEL=75 # From 0 (Unknown) to 100 (Fully trusted)
+      - CONNECTOR_UPDATE_EXISTING_DATA=True
+      - CONNECTOR_RUN_AND_TERMINATE=True
+      - CONNECTOR_LOG_LEVEL=info
+      - MITRE_ENTERPRISE_FILE_URL=https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/enterprise-attack/enterprise-attack.json
+        # - MITRE_MOBILE_ATTACK_FILE_URL=https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/mobile-attack/mobile-attack.json
+        # - MITRE_ICS_ATTACK_FILE_URL=https://raw.githubusercontent.com/mitre-attack/attack-stix-data/master/ics-attack/ics-attack.json
+        # - MITRE_CAPEC_FILE_URL=https://raw.githubusercontent.com/mitre/cti/master/capec/2.1/stix-capec.json
+      - MITRE_INTERVAL=7 # In days, must be strictly greater than 1
+    restart: always
+  connector-import-document:
+   image: opencti/connector-import-document:${OPENCTI_VERSION}
+   environment:
+     - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+     - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+     - CONNECTOR_ID=${CONNECTOR_IMPORT_DOCUMENT_ID} # Valid UUIDv4
+     - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
+     - CONNECTOR_NAME=ImportDocument
+     - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
+     - CONNECTOR_SCOPE=application/pdf,text/plain,text/html,text/csv,text/markdown
+     - CONNECTOR_AUTO=false # Enable/disable auto-import of file
+     - CONNECTOR_ONLY_CONTEXTUAL=false # Only extract data related to an entity (a report, a threat actor, etc.)
+     - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+     - CONNECTOR_LOG_LEVEL=info
+     - IMPORT_DOCUMENT_CREATE_INDICATOR=true
+   restart: unless-stopped
+   depends_on:
+     - opencti
+  connector-import-external-ref:
+    image: opencti/connector-import-external-reference:5.3.17
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_IMPORT_EXT_ID}
+      - CONNECTOR_TYPE=INTERNAL_ENRICHMENT
+      - CONNECTOR_NAME=ImportExternalReference
+      - CONNECTOR_SCOPE=External-Reference
+      - CONNECTOR_AUTO=false # Enable/disable auto-import of external references
+      - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+      - CONNECTOR_LOG_LEVEL=info
+      - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_PDF=true # Import as PDF file
+      - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_MD=true # Import as MarkDown file
+      - IMPORT_EXTERNAL_REFERENCE_IMPORT_PDF_AS_MD=true # If import_as_md is true, try to convert PDF as Markdown
+    restart: unless-stopped
+volumes:
+  esdata:
+  s3data:
+  redisdata:
+  amqpdata:
+    #  connector_elastic_volume:
+    #    external: true
+
