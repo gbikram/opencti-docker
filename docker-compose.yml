@@ -89,12 +89,6 @@ services:
       - PROVIDERS__LOCAL__STRATEGY=LocalStrategy
       - ELASTICSEARCH__USERNAME=elastic
       - ELASTICSEARCH__PASSWORD=${ELASTIC_PASSWORD}
-    # - SMTP__HOSTNAME=${SMTP_HOSTNAME}
-    # - SMTP__USE_SSL=true
-    # - SMTP__REJECT_UNAUTHORIZED=false
-    # - SMTP__PORT=25
-    #  - SMTP__PASSWORD=${SMTP_PASSWORD}
-    #  - SUBSCRIPTION_SCHEDULER__ENABLED=true
       - AI__MODEL=mistral-tiny
       - AI__TOKEN=${MISTRAL_AI_TOKEN}
       - EXPIRATION_SCHEDULER__ENABLED=false
@@ -191,7 +185,7 @@ services:
        - elasticsearch
     restart: always
   connector-mitre:
-    image: opencti/connector-mitre:5.5.0
+    image: opencti/connector-mitre:${OPENCTI_VERSION}
     environment:
       - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
@@ -228,7 +222,7 @@ services:
    depends_on:
      - opencti
   connector-import-external-ref:
-    image: opencti/connector-import-external-reference:5.3.17
+    image: opencti/connector-import-external-reference:${OPENCTI_VERSION}
     environment:
       - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
