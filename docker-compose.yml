@@ -1,14 +1,13 @@
-version: '3'
 services:
   redis:
-    image: redis:7.0.0
+    image: redis:7.4.2
     restart: unless-stopped 
     volumes:
       - redisdata:/data
     ports:
       - "6379:6379"
   elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.4
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.2
     volumes:
       - esdata:/usr/share/elasticsearch/data
     ports:
@@ -19,7 +18,7 @@ services:
       # Uncomment line below below for a cluster of multiple nodes
       # - cluster.name=docker-cluster
       - xpack.ml.enabled=false
-      - "ES_JAVA_OPTS=-Xms${ELASTIC_MEMORY_SIZE} -Xmx${ELASTIC_MEMORY_SIZE}"
+      #- "ES_JAVA_OPTS=-Xms${ELASTIC_MEMORY_SIZE} -Xmx${ELASTIC_MEMORY_SIZE}"
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     restart: unless-stopped
     ulimits:
@@ -30,7 +29,7 @@ services:
         soft: 65536
         hard: 65536
   minio:
-    image: minio/minio:RELEASE.2022-05-19T18-20-59Z
+    image: minio/minio:RELEASE.2024-05-28T17-19-04Z
     volumes:
       - s3data:/data
     ports:
@@ -52,7 +51,7 @@ services:
       retries: 3
     restart: unless-stopped
   rabbitmq:
-    image: rabbitmq:3.10-management
+    image: rabbitmq:4.0-management
     environment:
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
@@ -203,6 +202,7 @@ services:
     #      # - MITRE_CAPEC_FILE_URL=https://raw.githubusercontent.com/mitre/cti/master/capec/2.1/stix-capec.json
     #    - MITRE_INTERVAL=7 # In days, must be strictly greater than 1
     #  restart: always
+
   connector-import-document:
    image: opencti/connector-import-document:${OPENCTI_VERSION}
    environment:
@@ -237,6 +237,61 @@ services:
      #    - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_MD=true # Import as MarkDown file
      #    - IMPORT_EXTERNAL_REFERENCE_IMPORT_PDF_AS_MD=true # If import_as_md is true, try to convert PDF as Markdown
      #  restart: unless-stopped
+
+  connector-ransomware:
+    image: opencti/connector-ransomwarelive:${OPENCTI_VERSION}
+    container_name: ransomware-connector
+    environment:
+      # Connector's definition parameters:
+      - CONNECTOR_NAME=Ransomware Connector
+      - CONNECTOR_SCOPE=identity,attack-pattern,course-of-action,intrusion-set,malware,tool,report
+      # Connector's generic execution parameters:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN} #generate user token
+      - CONNECTOR_ID=${CONNECTOR_RANSOMWARELIVE_ID} #Valid UUIDv4 tokem
+      - CONNECTOR_LOG_LEVEL=info # Log level: debug, info, warn, error
+      - CONNECTOR_UPDATE_EXISTING_DATA=false
+      - CONNECTOR_PULL_HISTORY=true # If true, the connector will pull the history of the data. But it is not recommended to set it to true as there will a large influx of data.
+      - CONNECTOR_HISTORY_START_YEAR=2025 # Data only goes back till 2020
+      - CONNECTOR_RUN_EVERY=10m # 10 minutes will be the ideal time
+      # Connector's custom execution parameters:
+    restart: unless-stopped 
+  
+  connector-alienvault:
+    image: opencti/connector-alienvault:6.5.5
+    container_name: alienvault-connector
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_ALIENVAULT_ID}
+      - CONNECTOR_NAME=AlienVault
+      - CONNECTOR_SCOPE=alienvault
+      - CONNECTOR_LOG_LEVEL=error
+      - CONNECTOR_DURATION_PERIOD=PT30M # In ISO8601 Format starting with "P" for Period ex: "PT30M" = Period time of 30 minutes
+      - ALIENVAULT_BASE_URL=https://otx.alienvault.com
+      - ALIENVAULT_API_KEY=${ALIENVAULT_API_KEY}
+      - ALIENVAULT_TLP=White
+      - ALIENVAULT_CREATE_OBSERVABLES=true
+      - ALIENVAULT_CREATE_INDICATORS=true
+      - ALIENVAULT_PULSE_START_TIMESTAMP=2025-03-06T00:00:00                  # BEWARE! Could be a lot of pulses!
+      - ALIENVAULT_REPORT_TYPE=threat-report
+      - ALIENVAULT_REPORT_STATUS=New
+      - ALIENVAULT_GUESS_MALWARE=false                                        # Use tags to guess malware.
+      - ALIENVAULT_GUESS_CVE=false                                            # Use tags to guess CVE.
+      - ALIENVAULT_EXCLUDED_PULSE_INDICATOR_TYPES=FileHash-MD5,FileHash-SHA1  # Excluded Pulse indicator types.
+      - ALIENVAULT_ENABLE_RELATIONSHIPS=true                                  # Enable/Disable relationship creation between SDOs.
+      - ALIENVAULT_ENABLE_ATTACK_PATTERNS_INDICATES=false                     # Enable/Disable "indicates" relationships between indicators and attack patterns
+      - ALIENVAULT_INTERVAL_SEC=1800
+      - ALIENVAULT_DEFAULT_X_OPENCTI_SCORE=50
+      - ALIENVAULT_X_OPENCTI_SCORE_IP=60
+      - ALIENVAULT_X_OPENCTI_SCORE_DOMAIN=70
+      - ALIENVAULT_X_OPENCTI_SCORE_HOSTNAME=75
+      - ALIENVAULT_X_OPENCTI_SCORE_EMAIL=70
+      - ALIENVAULT_X_OPENCTI_SCORE_FILE=85
+      - ALIENVAULT_X_OPENCTI_SCORE_URL=80
+      - ALIENVAULT_X_OPENCTI_SCORE_MUTEX=60
+      - ALIENVAULT_X_OPENCTI_SCORE_CRYPTOCURRENCY_WALLET=80
+    restart: unless-stopped
 volumes:
   esdata:
   s3data:
