@@ -75,6 +75,7 @@ services:
       - APP__ADMIN__PASSWORD=${OPENCTI_ADMIN_PASSWORD}
       - APP__ADMIN__TOKEN=${OPENCTI_ADMIN_TOKEN}
       - APP__APP_LOGS__LOGS_LEVEL=info
+      - APP__GRAPHQL__PLAYGROUND__FORCE_DISABLED_INTROSPECTION=false
       - REDIS__HOSTNAME=redis
       - REDIS__PORT=6379
       - ELASTICSEARCH__URL=http://elasticsearch:9200
@@ -207,60 +208,61 @@ services:
     #    - MITRE_INTERVAL=7 # In days, must be strictly greater than 1
     #  restart: always
 
-  connector-import-document:
-   image: opencti/connector-import-document:${OPENCTI_VERSION}
-   environment:
-     - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
-     - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
-     - CONNECTOR_ID=${CONNECTOR_IMPORT_DOCUMENT_ID} # Valid UUIDv4
-     - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
-     - CONNECTOR_NAME=ImportDocument
-     - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
-     - CONNECTOR_SCOPE=application/pdf,text/plain,text/html,text/csv,text/markdown
-     - CONNECTOR_AUTO=false # Enable/disable auto-import of file
-     - CONNECTOR_ONLY_CONTEXTUAL=false # Only extract data related to an entity (a report, a threat actor, etc.)
-     - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
-     - CONNECTOR_LOG_LEVEL=info
-     - IMPORT_DOCUMENT_CREATE_INDICATOR=true
-   restart: unless-stopped
-   depends_on:
-     - opencti
-     #connector-import-external-ref:
-     #  image: opencti/connector-import-external-reference:${OPENCTI_VERSION}
-     #  environment:
-     #    - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
-     #    - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
-     #    - CONNECTOR_ID=${CONNECTOR_IMPORT_EXT_ID}
-     #    - CONNECTOR_TYPE=INTERNAL_ENRICHMENT
-     #    - CONNECTOR_NAME=ImportExternalReference
-     #    - CONNECTOR_SCOPE=External-Reference
-     #    - CONNECTOR_AUTO=false # Enable/disable auto-import of external references
-     #    - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
-     #    - CONNECTOR_LOG_LEVEL=info
-     #    - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_PDF=true # Import as PDF file
-     #    - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_MD=true # Import as MarkDown file
-     #    - IMPORT_EXTERNAL_REFERENCE_IMPORT_PDF_AS_MD=true # If import_as_md is true, try to convert PDF as Markdown
-     #  restart: unless-stopped
+  # connector-import-document:
+  #  image: opencti/connector-import-document:${OPENCTI_VERSION}
+  #  environment:
+  #    - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+  #    - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+  #    - CONNECTOR_ID=${CONNECTOR_IMPORT_DOCUMENT_ID} # Valid UUIDv4
+  #    - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
+  #    - CONNECTOR_NAME=ImportDocument
+  #    - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
+  #    - CONNECTOR_SCOPE=application/pdf,text/plain,text/html,text/csv,text/markdown
+  #    - CONNECTOR_AUTO=false # Enable/disable auto-import of file
+  #    - CONNECTOR_ONLY_CONTEXTUAL=false # Only extract data related to an entity (a report, a threat actor, etc.)
+  #    - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+  #    - CONNECTOR_LOG_LEVEL=info
+  #    - IMPORT_DOCUMENT_CREATE_INDICATOR=true
+  #  restart: unless-stopped
+  #  depends_on:
+  #    - opencti
+     
+  connector-import-external-ref:
+    image: opencti/connector-import-external-reference:${OPENCTI_VERSION}
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_IMPORT_EXT_ID}
+      - CONNECTOR_TYPE=INTERNAL_ENRICHMENT
+      - CONNECTOR_NAME=ImportExternalReference
+      - CONNECTOR_SCOPE=External-Reference
+      - CONNECTOR_AUTO=false # Enable/disable auto-import of external references
+      - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+      - CONNECTOR_LOG_LEVEL=info
+      - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_PDF=true # Import as PDF file
+      - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_MD=true # Import as MarkDown file
+      - IMPORT_EXTERNAL_REFERENCE_IMPORT_PDF_AS_MD=true # If import_as_md is true, try to convert PDF as Markdown
+    restart: unless-stopped
 
-  # connector-ransomware:
-  #   image: opencti/connector-ransomwarelive:${OPENCTI_VERSION}
-  #   container_name: ransomware-connector
-  #   environment:
-  #     # Connector's definition parameters:
-  #     - CONNECTOR_NAME=Ransomware Connector
-  #     - CONNECTOR_SCOPE=identity,attack-pattern,course-of-action,intrusion-set,malware,tool,report
-  #     # Connector's generic execution parameters:
-  #     - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
-  #     - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN} #generate user token
-  #     - CONNECTOR_ID=${CONNECTOR_RANSOMWARELIVE_ID} #Valid UUIDv4 tokem
-  #     - CONNECTOR_LOG_LEVEL=info # Log level: debug, info, warn, error
-  #     - CONNECTOR_UPDATE_EXISTING_DATA=false
-  #     - CONNECTOR_PULL_HISTORY=true # If true, the connector will pull the history of the data. But it is not recommended to set it to true as there will a large influx of data.
-  #     - CONNECTOR_HISTORY_START_YEAR=2025 # Data only goes back till 2020
-  #     - CONNECTOR_RUN_EVERY=10m # 10 minutes will be the ideal time
-  #     # Connector's custom execution parameters:
-  #   restart: unless-stopped 
-  
+  connector-ransomware:
+    image: opencti/connector-ransomwarelive:${OPENCTI_VERSION}
+    container_name: ransomware-connector
+    environment:
+      # Connector's definition parameters:
+      - CONNECTOR_NAME=Ransomware Connector
+      - CONNECTOR_SCOPE=identity,attack-pattern,course-of-action,intrusion-set,malware,tool,report
+      # Connector's generic execution parameters:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN} #generate user token
+      - CONNECTOR_ID=${CONNECTOR_RANSOMWARELIVE_ID} #Valid UUIDv4 tokem
+      - CONNECTOR_LOG_LEVEL=info # Log level: debug, info, warn, error
+      - CONNECTOR_UPDATE_EXISTING_DATA=false
+      - CONNECTOR_PULL_HISTORY=true # If true, the connector will pull the history of the data. But it is not recommended to set it to true as there will a large influx of data.
+      - CONNECTOR_HISTORY_START_YEAR=2025 # Data only goes back till 2020
+      - CONNECTOR_RUN_EVERY=10m # 10 minutes will be the ideal time
+      # Connector's custom execution parameters:
+    restart: unless-stopped 
+
   # connector-alienvault:
   #   image: opencti/connector-alienvault:6.5.5
   #   container_name: alienvault-connector
