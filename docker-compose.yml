@@ -22,7 +22,7 @@ services:
       - xpack.security.enabled=false
       - xpack.security.http.ssl.enabled=false
       - xpack.security.transport.ssl.enabled=false
-      #- "ES_JAVA_OPTS=-Xms${ELASTIC_MEMORY_SIZE} -Xmx${ELASTIC_MEMORY_SIZE}"
+      - "ES_JAVA_OPTS=-Xms${ELASTIC_MEMORY_SIZE} -Xmx${ELASTIC_MEMORY_SIZE}"
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
     restart: unless-stopped
     ulimits:
@@ -64,6 +64,7 @@ services:
     restart: unless-stopped
     ports:
       - "5672:5672"
+      - "15672:15672" 
   opencti:
     image: opencti/platform:${OPENCTI_VERSION}
     environment:
@@ -117,9 +118,9 @@ services:
       - WORKER_LOG_LEVEL=info
     depends_on:
       - opencti
-      # deploy:
-      # mode: replicated
-      # replicas: 1
+    deploy:
+      mode: replicated
+      replicas: 2
     restart: unless-stopped
     #connector-export-file-stix:
     #  image: opencti/connector-export-file-stix:${OPENCTI_VERSION}
@@ -163,22 +164,22 @@ services:
     #  restart: unless-stopped
     #  depends_on:
     #    - opencti
-    #connector-import-file-stix:
-    #  image: opencti/connector-import-file-stix:${OPENCTI_VERSION}
-    #  environment:
-    #    - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
-    #    - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
-    #    - CONNECTOR_ID=${CONNECTOR_IMPORT_FILE_STIX_ID} # Valid UUIDv4
-    #    - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
-    #    - CONNECTOR_NAME=ImportFileStix
-    #    - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
-    #    - CONNECTOR_SCOPE=application/json,text/xml
-    #    - CONNECTOR_AUTO=false # Enable/disable auto-import of file
-    #    - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
-    #    - CONNECTOR_LOG_LEVEL=error
-    #  restart: unless-stopped
-    #  depends_on:
-    #    - opencti
+  connector-import-file-stix:
+   image: opencti/connector-import-file-stix:${OPENCTI_VERSION}
+   environment:
+     - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+     - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+     - CONNECTOR_ID=${CONNECTOR_IMPORT_FILE_STIX_ID} # Valid UUIDv4
+     - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
+     - CONNECTOR_NAME=ImportFileStix
+     - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
+     - CONNECTOR_SCOPE=application/json,text/xml
+     - CONNECTOR_AUTO=false # Enable/disable auto-import of file
+     - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+     - CONNECTOR_LOG_LEVEL=error
+   restart: unless-stopped
+   depends_on:
+     - opencti
     #kibana:
     #  image: docker.elastic.co/kibana/kibana:7.17.5
     #  environment:
@@ -207,26 +208,24 @@ services:
     #      # - MITRE_CAPEC_FILE_URL=https://raw.githubusercontent.com/mitre/cti/master/capec/2.1/stix-capec.json
     #    - MITRE_INTERVAL=7 # In days, must be strictly greater than 1
     #  restart: always
-
-  # connector-import-document:
-  #  image: opencti/connector-import-document:${OPENCTI_VERSION}
-  #  environment:
-  #    - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
-  #    - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
-  #    - CONNECTOR_ID=${CONNECTOR_IMPORT_DOCUMENT_ID} # Valid UUIDv4
-  #    - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
-  #    - CONNECTOR_NAME=ImportDocument
-  #    - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
-  #    - CONNECTOR_SCOPE=application/pdf,text/plain,text/html,text/csv,text/markdown
-  #    - CONNECTOR_AUTO=false # Enable/disable auto-import of file
-  #    - CONNECTOR_ONLY_CONTEXTUAL=false # Only extract data related to an entity (a report, a threat actor, etc.)
-  #    - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
-  #    - CONNECTOR_LOG_LEVEL=info
-  #    - IMPORT_DOCUMENT_CREATE_INDICATOR=true
-  #  restart: unless-stopped
-  #  depends_on:
-  #    - opencti
-     
+  connector-import-document:
+   image: opencti/connector-import-document:${OPENCTI_VERSION}
+   environment:
+     - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+     - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+     - CONNECTOR_ID=${CONNECTOR_IMPORT_DOCUMENT_ID} # Valid UUIDv4
+     - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
+     - CONNECTOR_NAME=ImportDocument
+     - CONNECTOR_VALIDATE_BEFORE_IMPORT=true # Validate any bundle before import
+     - CONNECTOR_SCOPE=application/pdf,text/plain,text/html,text/csv,text/markdown
+     - CONNECTOR_AUTO=false # Enable/disable auto-import of file
+     - CONNECTOR_ONLY_CONTEXTUAL=false # Only extract data related to an entity (a report, a threat actor, etc.)
+     - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
+     - CONNECTOR_LOG_LEVEL=info
+     - IMPORT_DOCUMENT_CREATE_INDICATOR=true
+   restart: unless-stopped
+   depends_on:
+     - opencti  
   connector-import-external-ref:
     image: opencti/connector-import-external-reference:${OPENCTI_VERSION}
     environment:
@@ -243,25 +242,45 @@ services:
       - IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_MD=true # Import as MarkDown file
       - IMPORT_EXTERNAL_REFERENCE_IMPORT_PDF_AS_MD=true # If import_as_md is true, try to convert PDF as Markdown
     restart: unless-stopped
-
-  connector-ransomware:
-    image: opencti/connector-ransomwarelive:${OPENCTI_VERSION}
-    container_name: ransomware-connector
+  connector-urlhaus:
+    image: opencti/connector-urlhaus:${OPENCTI_VERSION}
     environment:
-      # Connector's definition parameters:
-      - CONNECTOR_NAME=Ransomware Connector
-      - CONNECTOR_SCOPE=identity,attack-pattern,course-of-action,intrusion-set,malware,tool,report
-      # Connector's generic execution parameters:
       - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
-      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN} #generate user token
-      - CONNECTOR_ID=${CONNECTOR_RANSOMWARELIVE_ID} #Valid UUIDv4 tokem
-      - CONNECTOR_LOG_LEVEL=info # Log level: debug, info, warn, error
-      - CONNECTOR_UPDATE_EXISTING_DATA=false
-      - CONNECTOR_PULL_HISTORY=true # If true, the connector will pull the history of the data. But it is not recommended to set it to true as there will a large influx of data.
-      - CONNECTOR_HISTORY_START_YEAR=2025 # Data only goes back till 2020
-      - CONNECTOR_RUN_EVERY=10m # 10 minutes will be the ideal time
-      # Connector's custom execution parameters:
-    restart: unless-stopped 
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_IMPORT_EXT_ID}
+      - CONNECTOR_NAME=Abuse.ch URLhaus
+      - CONNECTOR_SCOPE=urlhaus
+      - CONNECTOR_LOG_LEVEL=error
+      - URLHAUS_INTERVAL=3
+      - URLHAUS_CSV_URL=https://urlhaus.abuse.ch/downloads/csv_recent/
+      - URLHAUS_DEFAULT_X_OPENCTI_SCORE=80 # Optional: Defaults to 80.
+      - URLHAUS_IMPORT_OFFLINE=true
+      - URLHAUS_THREATS_FROM_LABELS=true
+    restart: always
+  connector-google-dns:
+    image: opencti/connector-google-dns:latest
+    environment:
+      - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+    restart: always
+  # connector-ransomware:
+  #   image: opencti/connector-ransomwarelive:${OPENCTI_VERSION}
+  #   container_name: ransomware-connector
+  #   environment:
+  #     # Connector's definition parameters:
+  #     - CONNECTOR_NAME=Ransomware Connector
+  #     - CONNECTOR_SCOPE=identity,attack-pattern,course-of-action,intrusion-set,malware,tool,report
+  #     # Connector's generic execution parameters:
+  #     - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+  #     - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN} #generate user token
+  #     - CONNECTOR_ID=${CONNECTOR_RANSOMWARELIVE_ID} #Valid UUIDv4 tokem
+  #     - CONNECTOR_LOG_LEVEL=info # Log level: debug, info, warn, error
+  #     - CONNECTOR_UPDATE_EXISTING_DATA=false
+  #     - CONNECTOR_PULL_HISTORY=true # If true, the connector will pull the history of the data. But it is not recommended to set it to true as there will a large influx of data.
+  #     - CONNECTOR_HISTORY_START_YEAR=2026 # Data only goes back till 2020
+  #     - CONNECTOR_RUN_EVERY=10m # 10 minutes will be the ideal time
+  #     # Connector's custom execution parameters:
+  #   restart: unless-stopped 
 
   # connector-alienvault:
   #   image: opencti/connector-alienvault:6.5.5
