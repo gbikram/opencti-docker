@@ -176,7 +176,7 @@ services:
      - CONNECTOR_SCOPE=application/json,text/xml
      - CONNECTOR_AUTO=false # Enable/disable auto-import of file
      - CONNECTOR_CONFIDENCE_LEVEL=15 # From 0 (Unknown) to 100 (Fully trusted)
-     - CONNECTOR_LOG_LEVEL=error
+     - CONNECTOR_LOG_LEVEL=info
    restart: unless-stopped
    depends_on:
      - opencti
@@ -247,10 +247,10 @@ services:
     environment:
       - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
-      - CONNECTOR_ID=${CONNECTOR_IMPORT_EXT_ID}
+      - CONNECTOR_ID=${CONNECTOR_URLHAUS_ID}
       - CONNECTOR_NAME=Abuse.ch URLhaus
       - CONNECTOR_SCOPE=urlhaus
-      - CONNECTOR_LOG_LEVEL=error
+      - CONNECTOR_LOG_LEVEL=info
       - URLHAUS_INTERVAL=3
       - URLHAUS_CSV_URL=https://urlhaus.abuse.ch/downloads/csv_recent/
       - URLHAUS_DEFAULT_X_OPENCTI_SCORE=80 # Optional: Defaults to 80.
@@ -258,10 +258,14 @@ services:
       - URLHAUS_THREATS_FROM_LABELS=true
     restart: always
   connector-google-dns:
-    image: opencti/connector-google-dns:latest
+    image: opencti/connector-google-dns:${OPENCTI_VERSION}
     environment:
       - OPENCTI_URL=${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_GOOGLE_DNS_ID}
+      - CONNECTOR_LOG_LEVEL=info
+      - CONNECTOR_SCOPE=domain-name
+      - CONNECTOR_NAME=Google DNS
     restart: always
   # connector-ransomware:
   #   image: opencti/connector-ransomwarelive:${OPENCTI_VERSION}
