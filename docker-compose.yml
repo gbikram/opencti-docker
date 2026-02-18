@@ -120,7 +120,7 @@ services:
       - opencti
     deploy:
       mode: replicated
-      replicas: 2
+      replicas: 1
     restart: unless-stopped
     #connector-export-file-stix:
     #  image: opencti/connector-export-file-stix:${OPENCTI_VERSION}
