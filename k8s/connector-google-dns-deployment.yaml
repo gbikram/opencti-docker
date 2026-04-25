@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: connector-google-dns
+  name: connector-google-dns
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: connector-google-dns
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: connector-google-dns
+    spec:
+      containers:
+        - env:
+            - name: CONNECTOR_ID
+              value: ${CONNECTOR_GOOGLE_DNS_ID}
+            - name: CONNECTOR_LOG_LEVEL
+              value: info
+            - name: CONNECTOR_NAME
+              value: Google DNS
+            - name: CONNECTOR_SCOPE
+              value: domain-name
+            - name: OPENCTI_TOKEN
+              value: ${OPENCTI_ADMIN_TOKEN}
+            - name: OPENCTI_URL
+              value: ${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+          image: opencti/connector-google-dns:${OPENCTI_VERSION}
+          name: connector-google-dns
+      restartPolicy: Always

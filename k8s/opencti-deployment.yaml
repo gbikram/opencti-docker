@@ -1,0 +1,92 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: opencti
+  name: opencti
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: opencti
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: opencti
+    spec:
+      containers:
+        - env:
+            - name: AI__MODEL
+              value: mistral-tiny
+            - name: AI__TOKEN
+              value: ${MISTRAL_AI_TOKEN}
+            - name: APP__ADMIN__EMAIL
+              value: ${OPENCTI_ADMIN_EMAIL}
+            - name: APP__ADMIN__PASSWORD
+              value: ${OPENCTI_ADMIN_PASSWORD}
+            - name: APP__ADMIN__TOKEN
+              value: ${OPENCTI_ADMIN_TOKEN}
+            - name: APP__APP_LOGS__LOGS_LEVEL
+              value: info
+            - name: APP__BASE_PATH
+              value: ${OPENCTI_BASE_PATH}
+            - name: APP__BASE_URL
+              value: ${OPENCTI_BASE_URL}
+            - name: APP__GRAPHQL__PLAYGROUND__FORCE_DISABLED_INTROSPECTION
+              value: "false"
+            - name: APP__PORT
+              value: "8080"
+            - name: ELASTICSEARCH__PASSWORD
+              value: ${ELASTIC_PASSWORD}
+            - name: ELASTICSEARCH__URL
+              value: http://elasticsearch:9200
+            - name: ELASTICSEARCH__USERNAME
+              value: elastic
+            - name: EXPIRATION_SCHEDULER__ENABLED
+              value: "false"
+            - name: MINIO__ACCESS_KEY
+              value: ${MINIO_ROOT_USER}
+            - name: MINIO__ENDPOINT
+              value: minio
+            - name: MINIO__PORT
+              value: "9000"
+            - name: MINIO__SECRET_KEY
+              value: ${MINIO_ROOT_PASSWORD}
+            - name: MINIO__USE_SSL
+              value: "false"
+            - name: NODE_OPTIONS
+              value: --max-old-space-size=8096
+            - name: PROVIDERS__LOCAL__STRATEGY
+              value: LocalStrategy
+            - name: RABBITMQ__HOSTNAME
+              value: rabbitmq
+            - name: RABBITMQ__MANAGEMENT_SSL
+              value: "false"
+            - name: RABBITMQ__PASSWORD
+              value: ${RABBITMQ_DEFAULT_PASS}
+            - name: RABBITMQ__PORT
+              value: "5672"
+            - name: RABBITMQ__PORT_MANAGEMENT
+              value: "15672"
+            - name: RABBITMQ__USERNAME
+              value: ${RABBITMQ_DEFAULT_USER}
+            - name: REDIS__HOSTNAME
+              value: redis
+            - name: REDIS__PORT
+              value: "6379"
+          image: opencti/platform:${OPENCTI_VERSION}
+          name: opencti
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources:
+            limits:
+              cpu: "2"
+              memory: "4194304e3"
+      restartPolicy: Always

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: worker
+  name: worker
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      io.kompose.service: worker
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: worker
+    spec:
+      containers:
+        - env:
+            - name: OPENCTI_TOKEN
+              value: ${OPENCTI_ADMIN_TOKEN}
+            - name: OPENCTI_URL
+              value: ${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+            - name: WORKER_LOG_LEVEL
+              value: info
+          image: opencti/worker:${OPENCTI_VERSION}
+          name: worker
+      restartPolicy: Always

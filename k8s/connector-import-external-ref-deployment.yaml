@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: connector-import-external-ref
+  name: connector-import-external-ref
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: connector-import-external-ref
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: connector-import-external-ref
+    spec:
+      containers:
+        - env:
+            - name: CONNECTOR_AUTO
+              value: "false"
+            - name: CONNECTOR_CONFIDENCE_LEVEL
+              value: "15"
+            - name: CONNECTOR_ID
+              value: ${CONNECTOR_IMPORT_EXT_ID}
+            - name: CONNECTOR_LOG_LEVEL
+              value: info
+            - name: CONNECTOR_NAME
+              value: ImportExternalReference
+            - name: CONNECTOR_SCOPE
+              value: External-Reference
+            - name: CONNECTOR_TYPE
+              value: INTERNAL_ENRICHMENT
+            - name: IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_MD
+              value: "true"
+            - name: IMPORT_EXTERNAL_REFERENCE_IMPORT_AS_PDF
+              value: "true"
+            - name: IMPORT_EXTERNAL_REFERENCE_IMPORT_PDF_AS_MD
+              value: "true"
+            - name: OPENCTI_TOKEN
+              value: ${OPENCTI_ADMIN_TOKEN}
+            - name: OPENCTI_URL
+              value: ${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
+          image: opencti/connector-import-external-reference:${OPENCTI_VERSION}
+          name: connector-import-external-ref
+      restartPolicy: Always

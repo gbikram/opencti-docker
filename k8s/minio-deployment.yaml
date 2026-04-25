@@ -1,0 +1,57 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+    kompose.version: 1.38.0 (a8f5d1cbd)
+  labels:
+    io.kompose.service: minio
+  name: minio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: minio
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: /Users/bikram/Git/opencti-docker/.tools/kompose convert -f /Users/bikram/Git/opencti-docker/docker-compose.yml --out /Users/bikram/Git/opencti-docker/k8s
+        kompose.version: 1.38.0 (a8f5d1cbd)
+      labels:
+        io.kompose.service: minio
+    spec:
+      containers:
+        - args:
+            - server
+            - /data
+          env:
+            - name: MINIO_ROOT_PASSWORD
+              value: ${MINIO_ROOT_PASSWORD}
+            - name: MINIO_ROOT_USER
+              value: ${MINIO_ROOT_USER}
+          image: minio/minio:RELEASE.2024-05-28T17-19-04Z
+          livenessProbe:
+            exec:
+              command:
+                - wget
+                - -q
+                - -O
+                - /dev/null
+                - http://localhost:9000/minio/health/live
+            failureThreshold: 3
+            periodSeconds: 30
+            timeoutSeconds: 20
+          name: minio
+          ports:
+            - containerPort: 9000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /data
+              name: s3data
+      restartPolicy: Always
+      volumes:
+        - name: s3data
+          persistentVolumeClaim:
+            claimName: s3data
