@@ -25,7 +25,7 @@ spec:
             - name: CONNECTOR_DURATION_PERIOD
               value: PT60M
             - name: CONNECTOR_ID
-              value: A69ABB41-1C59-4289-A470-D2EFB5A35FDF
+              value: ${CONNECTOR_SILOBREAKER_ID}
             - name: CONNECTOR_LOG_LEVEL
               value: error
             - name: CONNECTOR_NAME
@@ -33,19 +33,19 @@ spec:
             - name: CONNECTOR_SCOPE
               value: silobreaker
             - name: OPENCTI_TOKEN
-              value: 94404fed-693c-459c-b17c-7124cde444e1
+              value: ${OPENCTI_ADMIN_TOKEN}
             - name: OPENCTI_URL
-              value: http://opencti:8080/opencti
+              value: ${OPENCTI_INTERNAL_URL}${OPENCTI_BASE_PATH}
             - name: SILOBREAKER_API_KEY
-              value: 
+              value: ${SILOBREAKER_API_KEY}
             - name: SILOBREAKER_API_SHARED
-              value: 
+              value: ${SILOBREAKER_API_SHARED}
             - name: SILOBREAKER_API_URL
               value: https://api.silobreaker.com
             - name: SILOBREAKER_IMPORT_START_DATE
               value: "2026-02-01"
             - name: SILOBREAKER_LISTS
               value: 138809,96910,36592,55112,50774
-          image: opencti/connector-silobreaker:6.8.17
+          image: opencti/connector-silobreaker:${OPENCTI_VERSION}
           name: connector-silobreaker
       restartPolicy: Always

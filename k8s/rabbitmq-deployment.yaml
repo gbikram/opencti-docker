@@ -25,9 +25,9 @@ spec:
       containers:
         - env:
             - name: RABBITMQ_DEFAULT_PASS
-              value: rabbitmq
+              value: ${RABBITMQ_DEFAULT_PASS}
             - name: RABBITMQ_DEFAULT_USER
-              value: rabbitmq
+              value: ${RABBITMQ_DEFAULT_USER}
           image: rabbitmq:4.0-management
           name: rabbitmq
           ports:
